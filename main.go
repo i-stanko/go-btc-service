@@ -1,6 +1,9 @@
 package main
 
 import (
+	"encoding/json"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,8 +18,27 @@ func main() {
 }
 
 func getCurrentBitcoinRate(c *gin.Context) {
-	// Реалізуати логіку для отримання поточного курсу біткоїна (BTC) у гривні (UAH)
-	// Використати сторонній сервіс для отримання актуального курсу
+	resp, err := http.Get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=uah")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get bitcoin rate"})
+		return
+	}
+
+	defer resp.Body.Close()
+
+	var result map[string]map[string]float64
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse response"})
+		return
+	}
+
+	rate, ok := result["bitcoin"]["uah"]
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get bitcoin rate"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"rate": rate})
 }
 
 func subscribeEmail(c *gin.Context) {
