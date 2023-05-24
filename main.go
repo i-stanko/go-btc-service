@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 )
@@ -72,5 +74,34 @@ func subscribeEmail(c *gin.Context) {
 }
 
 func sendEmails(c *gin.Context) {
-	// Реалізувати логіку для відправки листів з актуальним курсом на всі підписані електронні адреси
+	subscribers, err := getSubscribers()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get subscribers"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"subscribers": subscribers})
+}
+
+func getSubscribers() ([]string, error) {
+	file, err := os.Open(subscribersFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []string{}, nil
+		}
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	var subscribers []string
+	for scanner.Scan() {
+		subscribers = append(subscribers, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return subscribers, nil
 }
