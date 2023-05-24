@@ -42,7 +42,33 @@ func getCurrentBitcoinRate(c *gin.Context) {
 }
 
 func subscribeEmail(c *gin.Context) {
-	// Реалізувати логіку для підписки електронної адреси на отримання оновлень про зміну курсу
+	email := c.PostForm("email")
+
+	// Перевірка, чи електронна адреса не є порожньою
+	if email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is required"})
+		return
+	}
+
+	// Перевірка, чи електронна адреса існує в файлі
+	exists, err := isEmailExists(email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check email existence"})
+		return
+	}
+	if exists {
+		c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
+		return
+	}
+
+	// Збереження електронної адреси у файлі
+	err = saveEmail(email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save email"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Email subscribed"})
 }
 
 func sendEmails(c *gin.Context) {
